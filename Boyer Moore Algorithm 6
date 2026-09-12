@@ -1,0 +1,39 @@
+import java.util.*;
+
+class Solution {
+    public List<Integer> findAnagrams(String s, String p) {
+        List<Integer> result = new ArrayList<>();
+
+        if (s.length() < p.length()) {
+            return result;
+        }
+
+        int[] pFreq = new int[26];
+        int[] windowFreq = new int[26];
+
+        // Frequency of characters in p
+        for (char c : p.toCharArray()) {
+            pFreq[c - 'a']++;
+        }
+
+        int windowSize = p.length();
+
+        // Sliding window
+        for (int i = 0; i < s.length(); i++) {
+            // Add current character
+            windowFreq[s.charAt(i) - 'a']++;
+
+            // Remove character outside the window
+            if (i >= windowSize) {
+                windowFreq[s.charAt(i - windowSize) - 'a']--;
+            }
+
+            // Check if current window is an anagram
+            if (i >= windowSize - 1 && Arrays.equals(pFreq, windowFreq)) {
+                result.add(i - windowSize + 1);
+            }
+        }
+
+        return result;
+    }
+}
