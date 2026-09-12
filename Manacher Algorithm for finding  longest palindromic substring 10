@@ -1,0 +1,194 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    // Manacher on transformed string.
+    // Example: "abba" -> "#a#b#b#a#"
+    static int[] manacher(String s) {
+        int n = s.length();
+        int m = 2 * n + 1;
+
+        int[] radius = new int[m];
+
+        int center = 0;
+        int right = 0;
+
+        for (int i = 0; i < m; i++) {
+            int mirror = 2 * center - i;
+
+            if (i < right) {
+                radius[i] = Math.min(right - i, radius[mirror]);
+            }
+
+            int left = i - radius[i] - 1;
+            int r = i + radius[i] + 1;
+
+            while (left >= 0 && r < m &&
+                   getChar(s, left) == getChar(s, r)) {
+                radius[i]++;
+                left--;
+                r++;
+            }
+
+            if (i + radius[i] > right) {
+                center = i;
+                right = i + radius[i];
+            }
+        }
+
+        return radius;
+    }
+
+    // Character at transformed-string index.
+    // Even indices are separators.
+    static char getChar(String s, int index) {
+        if ((index & 1) == 0) {
+            return '#';
+        }
+
+        return s.charAt(index / 2);
+    }
+
+    // Sparse Table for range maximum queries
+    static class SparseTable {
+
+        int[][] table;
+        int[] log;
+
+        SparseTable(int[] arr) {
+            int n = arr.length;
+
+            log = new int[n + 1];
+
+            for (int i = 2; i <= n; i++) {
+                log[i] = log[i / 2] + 1;
+            }
+
+            int levels = log[n] + 1;
+
+            table = new int[levels][n];
+
+            System.arraycopy(arr, 0, table[0], 0, n);
+
+            for (int k = 1; k < levels; k++) {
+                int len = 1 << k;
+                int half = len >> 1;
+
+                for (int i = 0; i + len <= n; i++) {
+                    table[k][i] = Math.max(
+                            table[k - 1][i],
+                            table[k - 1][i + half]
+                    );
+                }
+            }
+        }
+
+        int query(int left, int right) {
+            if (left > right) {
+                return 0;
+            }
+
+            int len = right - left + 1;
+            int k = log[len];
+
+            return Math.max(
+                    table[k][left],
+                    table[k][right - (1 << k) + 1]
+            );
+        }
+    }
+
+    public static List<Integer> circularPalindromes(String s) {
+
+        int n = s.length();
+
+        // Duplicate the string so that every circular substring
+        // becomes an ordinary substring.
+        String doubled = s + s;
+
+        /*
+         * We only need substrings of length <= n.
+         *
+         * For every rotation i:
+         *
+         * rotation = doubled[i ... i+n-1]
+         */
+
+        int[] radius = manacher(doubled);
+
+        SparseTable rmq = new SparseTable(radius);
+
+        List<Integer> answer = new ArrayList<>();
+
+        for (int start = 0; start < n; start++) {
+
+            /*
+             * In the transformed string:
+             *
+             * original interval:
+             *     start ... start+n-1
+             *
+             * becomes:
+             *     2*start+1 ... 2*(start+n-1)+1
+             *
+             * If we want a palindrome of length len,
+             * its center must lie between:
+             *
+             *     L + len - 1
+             *     R - len + 1
+             *
+             * in transformed coordinates.
+             */
+
+            int L = 2 * start + 1;
+            int R = 2 * (start + n - 1) + 1;
+
+            int low = 1;
+            int high = n;
+            int best = 1;
+
+            while (low <= high) {
+
+                int len = (low + high) >>> 1;
+
+                int leftCenter = L + len - 1;
+                int rightCenter = R - len + 1;
+
+                if (leftCenter <= rightCenter &&
+                    rmq.query(leftCenter, rightCenter) >= len) {
+
+                    best = len;
+                    low = len + 1;
+
+                } else {
+                    high = len - 1;
+                }
+            }
+
+            answer.add(best);
+        }
+
+        return answer;
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        BufferedReader br =
+                new BufferedReader(new InputStreamReader(System.in));
+
+        int n = Integer.parseInt(br.readLine().trim());
+
+        String s = br.readLine().trim();
+
+        List<Integer> result = circularPalindromes(s);
+
+        StringBuilder out = new StringBuilder();
+
+        for (int x : result) {
+            out.append(x).append('\n');
+        }
+
+        System.out.print(out);
+    }
+}
