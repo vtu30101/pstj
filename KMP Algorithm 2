@@ -1,0 +1,27 @@
+class Solution {
+    public boolean repeatedSubstringPattern(String s) {
+        int n = s.length();
+        int[] lps = new int[n];
+
+        // Build LPS array
+        for (int i = 1, len = 0; i < n; ) {
+            if (s.charAt(i) == s.charAt(len)) {
+                lps[i++] = ++len;
+            } else if (len > 0) {
+                len = lps[len - 1];
+            } else {
+                lps[i++] = 0;
+            }
+        }
+
+        // Length of the longest proper prefix which is also suffix
+        int longestPrefixSuffix = lps[n - 1];
+
+        // Length of the repeating pattern
+        int patternLength = n - longestPrefixSuffix;
+
+        return longestPrefixSuffix > 0 &&
+               n % patternLength == 0;
+    }
+}
+ 
